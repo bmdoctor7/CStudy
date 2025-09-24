@@ -39,7 +39,6 @@ char Compare(SqList A, SqList B) {
             }
         }
     }
-    
-
-    
 }
+
+//test second commit
