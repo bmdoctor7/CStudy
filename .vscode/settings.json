@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "limits": "cpp",
+        "utility": "cpp",
+        "xutility": "cpp",
+        "iostream": "cpp",
+        "cstdlib": "cpp",
+        "xstring": "cpp"
+    }
+}
