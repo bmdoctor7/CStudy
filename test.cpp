@@ -20,27 +20,31 @@ typedef struct {
     int increment;
 } SqList;
 
-char Compare(SqList A, SqList B) {
-    //判断是否有空表
-    bool isAempty;
-    bool isBempty;
+typedef struct BiTNode{
+    ElemType data;
+    struct BiTNode *lchild,*rchild;
+}*BiTree,BiTNode;
 
-    if(A.length<B.length){
-        for(int i = 0; i < A.length; i++) {
-            if(A.elem[i] != B.elem[i]) {
-                isAempty = false;
-            }
-        }
-    }
-    else{
-        for(int i = 0; i < B.length; i++) {
-            if(B.elem[i] != A.elem[i]) {
-                isBempty = false;
-            }
-        }
-    }
+typedef enum{ATOM,LIST} ElemTag;
+typedef struct GLNode{
+    ElemTag tag;
+    union{
+        ElemType atom;
+        struct{
+            struct GLNode* hp;
+            struct GLNode* tp;
+        }ptr;
+    }un;
+}*GList;
+
+int GListDepth(GList ls) 
+{ 
+    if (!ls) return 1;
+	if (ls->tag == ATOM)return 0;
+
+    return GListDepth(ls->un.ptr.hp) + 1 > GListDepth(ls->un.ptr.tp) 
+    ? GListDepth(ls->un.ptr.hp) + 1 
+    : GListDepth(ls->un.ptr.tp);
 }
 
-//test second commit
 
-//test third commit
