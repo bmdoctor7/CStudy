@@ -17,19 +17,7 @@ typedef struct BiTNode{
     BiTNode *lchild,*rchild;
 }*BiTree,BiTNode;
 
-// 判断两棵二叉树是否相等
-Status BTEqual(BiTree T1, BiTree T2) {
-    if (T1 == NULL && T2 == NULL) {
-        return TRUE; // 两棵树都为空，视为相等
-    }
-    if (T1 == NULL || T2 == NULL) {
-        return FALSE; // 一棵树为空，另一棵不为空，视为不相等
-    }
-    // 比较当前结点的值，并递归比较左右子树
-    return (T1->data == T2->data) &&
-           BTEqual(T1->lchild, T2->lchild) &&
-           BTEqual(T1->rchild, T2->rchild);
-}
+
 
 
 // 计算二叉树中度为1/2的结点个数
@@ -61,7 +49,6 @@ int BranchNodes(BiTree T) {
     Degree2(T, count);
     return count;
 }
-
 
 
 // 在二叉树 T 中查找是否存在值为 x 的结点
@@ -126,6 +113,32 @@ int NodeLevel(BiTree T, TElemType x){
     return -1; // 未找到结点，返回-1
 }
 
+//返回值为data的结点的双亲结点的data值，若无则返回NULL
+TElemType findParent(BiTree T, TElemType data, BiTNode* parent = NULL) {
+    if (T == NULL) {
+        return '\0'; // 树为空，返回NULL表示未找到
+    }
+    if (T->data == data) {
+        return parent ? parent->data : '\0'; // 找到结点，返回父结点的data值
+    }
+    TElemType leftResult = findParent(T->lchild, data, T); // 在左子树中查找
+    if (leftResult != '\0') {
+        return leftResult; // 在左子树中找到，直接返回
+    }
+    return findParent(T->rchild, data, T); // 在右子树中查找
+}
 
+//将二叉树中所有结点的左右字数交换
+void ExchangeSubTree(BiTree &T){
+    if (T == NULL) {
+        return;
+    }
+    // 交换当前结点的左右子树
+    BiTree temp = T->lchild;
+    T->lchild = T->rchild;
+    T->rchild = temp;
 
-
+    // 递归交换左子树和右子树
+    ExchangeSubTree(T->lchild);
+    ExchangeSubTree(T->rchild);
+}
