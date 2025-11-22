@@ -33,9 +33,6 @@ typedef struct {
 
 #pragma endregion
 
-void CreatBTree(BTree &T,int n,int m); // 创建B树
-
-
 // 初始化B树
 Status InitBTree(BTree *T) {
     *T = NULL;
@@ -55,7 +52,6 @@ Status DestroyBTree(BTree *T) {
     return OK;
 }
 
-
 /* 创建一个空结点并初始化 */
 static BTNode* NewNode() {
     BTNode *p = (BTNode*)malloc(sizeof(BTNode));
@@ -66,6 +62,8 @@ static BTNode* NewNode() {
     return p;
 }
 
+
+/* ---------------------- B树查找操作 ---------------------- */
 /* 在节点 p 内查找关键字 K 的位置：返回 i，使得 K 应插入在 i 和 i+1 之间
    即 key[1..i] < K <= key[i+1..]，i 取值范围 [0, p->keynum] */
 static int SearchInNode(BTNode *p, KeyType K) {
@@ -94,6 +92,7 @@ Result SearchBTree(BTree T, KeyType K) {
 }
 
 
+/* ---------------------- B树插入操作 ---------------------- */
 /* 在结点 p 中第 i 与 i+1 个关键字之间插入新关键字 K 及其右子树指针 ap。
    注意：i 由 SearchInNode 得到（K 应插入到 i 与 i+1 之间），ap 可为空（叶子插入）。*/
 static void InsertKey(BTNode *p, int i, KeyType K, BTNode *ap) {
@@ -186,6 +185,38 @@ Status InsertBTree(BTree &T, KeyType K) {
     }
 
     return OK;
+}
+
+/* ---------------------- B树创建操作 ---------------------- */
+/* 创建一颗含有 n 个关键字的 m 阶 B 树（此实现受编译期常量 M 限制）
+   - 若传入 m 与编译期常量 M 不符，将提示并按 M 构建。
+   - 从标准输入读取 n 个整数作为关键字，按顺序插入构建 B 树。
+*/
+void CreatBTree(BTree &T,int n,int m) {
+    if (n <= 0) {
+        // 空树
+        InitBTree(&T);
+        return;
+    }
+
+    if (m != M) {
+        fprintf(stderr, "[Hint] m=%d 与编译期阶数 M=%d 不一致，按 M 构建。\n", m, M);
+    }
+
+    if (T) {
+        // 清理已有树，避免内存泄漏
+        DestroyBTree(&T);
+    }
+    InitBTree(&T);
+
+    for (int i = 0; i < n; ++i) {
+        KeyType k;
+        if (scanf("%d", &k) != 1) {
+            fprintf(stderr, "[Warn] 第 %d 个关键字读取失败，提前结束构建。\n", i + 1);
+            break;
+        }
+        InsertBTree(T, k);
+    }
 }
 
 /* ---------------------- B树删除操作 ---------------------- */
