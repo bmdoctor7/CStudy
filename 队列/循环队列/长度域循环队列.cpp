@@ -19,14 +19,14 @@ typedef struct {
 
 Status EnCQueue(CLenQueue &Q, ElemType x) { 
     // Add your code here
-    if (Q.length == MAXQSIZE) // 队满
+    if (Q.length == Q.maxSize) // 队满
         return ERROR;
     if (Q.length == 0) {
         // 队列为空，直接放在0位置
         Q.rear = 0;
         Q.elem[Q.rear] = x;
     } else {
-        Q.rear = (Q.rear + 1) % MAXQSIZE;
+        Q.rear = (Q.rear + 1) % Q.maxSize;
         Q.elem[Q.rear] = x;
     }
     Q.length++;
@@ -38,7 +38,7 @@ Status DeCQueue(CLenQueue &Q, ElemType &x){
    // Add your code here
     if(Q.length==0)return ERROR;
     
-    int front =(Q.rear - Q.length + MAXQSIZE+1)%MAXQSIZE;
+    int front =(Q.rear - Q.length + Q.maxSize + 1)%Q.maxSize;
 
     x = Q.elem[front];
     Q.length--;

@@ -11,8 +11,8 @@ typedef int Status;
 
 typedef char ElemType;
 typedef struct {
-    ElemType* elem; //存放栈元素的数组
-    ElemType* top; //栈顶元素的下一个位置
+    ElemType* elem; //存放栈元素
+    ElemType* top; //栈顶元素的*****下一个位置******
     int size; //栈的当前容量
     int increment; //栈空间分配增量
 } SqStack2;
@@ -27,7 +27,7 @@ Status InitStack_Sq2(SqStack2 &S, int size, int inc) {
     return OK;
 }
 
-//判断栈空
+//判断栈空 —— 空栈则返回TRUE，否则返回FALSE
 Status StackEmpty_Sq2(SqStack2 S) { 
     return S.top<=S.elem;
 }

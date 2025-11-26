@@ -33,6 +33,7 @@ typedef struct GLNode{
     }un;
 }*GList;
 
+//求广义表深度
 int GListDepth(GList ls) 
 { 
     if (!ls) return 1;//空表深度为1
@@ -45,6 +46,7 @@ int GListDepth(GList ls)
     : GListDepth(ls->un.ptr.tp);
 }
 
+//判断两个广义表是否相等
 Status Equal(GList A, GList B) 
 {  
     //两个空表相等
