@@ -19,7 +19,6 @@ typedef struct {
     int size;
     int increment;
 } SqList;
-
 typedef struct BiTNode{
     ElemType data;
     struct BiTNode *lchild,*rchild;

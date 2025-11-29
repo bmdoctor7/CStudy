@@ -67,8 +67,8 @@ static BTNode* NewNode() {
 /* 在节点 p 内查找关键字 K 的位置：返回 i，使得 K 应插入在 i 和 i+1 之间
    即 key[1..i] < K <= key[i+1..]，i 取值范围 [0, p->keynum] */
 static int SearchInNode(BTNode *p, KeyType K) {
-    int i = 0;
-    while (i < p->keynum && K > p->key[i + 1]) ++i;
+    int i = 1;
+    while (i <= p->keynum && K > p->key[i]) i++;
     return i; // 若 i<keynum 且 K==key[i+1] 则为命中
 }
 
@@ -81,11 +81,11 @@ Result SearchBTree(BTree T, KeyType K) {
     int i = 0;
     while (p) {
         i = SearchInNode(p, K);
-        if (i < p->keynum && K == p->key[i + 1]) { //找到关键字
-            r.pt = p; r.i = i + 1; r.tag = 1; return r;
+        if (i <= p->keynum && K == p->key[i]) { //找到关键字
+            r.pt = p; r.i = i; r.tag = 1; return r;
         }
         q = p;
-        p = p->ptr[i]; //不断向下查找
+        p = p->ptr[i-1]; //不断向下查找
     }
     r.pt = q; r.i = i; r.tag = 0; // 未找到，返回插入位置
     return r;
@@ -97,19 +97,19 @@ Result SearchBTree(BTree T, KeyType K) {
    注意：i 由 SearchInNode 得到（K 应插入到 i 与 i+1 之间），ap 可为空（叶子插入）。*/
 static void InsertKey(BTNode *p, int i, KeyType K, BTNode *ap) {
     // 右移腾位置（keys: i+1..keynum -> i+2..keynum+1；ptr 同步 i+1..keynum -> i+2..keynum+1）
-    for (int j = p->keynum; j > i; --j) {
+    for (int j = p->keynum; j >= i; --j) {
         p->key[j + 1] = p->key[j];
         p->ptr[j + 1] = p->ptr[j];
     }
-    p->key[i + 1] = K;
-    p->ptr[i + 1] = ap;
+    p->key[i] = K;
+    p->ptr[i] = ap;
     if (ap) ap->parent = p;
     p->keynum++;
 }
 
 /* 将结点 p 在第 s 个关键字处分裂为左右两个结点：
    左（保留在 p 中）含 key[1..s-1]；右（返回 ap）含原 key[s+1..原keynum]；
-   上升关键字为 upKey=key[s]。*/
+   （相比教材新增）上升关键字为 upKey=key[s]。*/
 static void Split(BTree &p, int s, KeyType &upKey, BTree &ap) {
     upKey = p->key[s];
     BTNode *q = NewNode();
@@ -117,10 +117,10 @@ static void Split(BTree &p, int s, KeyType &upKey, BTree &ap) {
     // 右半部分搬迁到 q
     q->keynum = p->keynum - s;
 
-    //???
+    //右半部分的第一个孩子指针
     q->ptr[0] = p->ptr[s];
     if (q->ptr[0]) q->ptr[0]->parent = q;
-
+    // 右半部分剩下的关键字和孩子指针
     for (int j = 1; j <= q->keynum; ++j) {
         q->key[j] = p->key[s + j];
         q->ptr[j] = p->ptr[s + j];
@@ -132,7 +132,8 @@ static void Split(BTree &p, int s, KeyType &upKey, BTree &ap) {
     ap = q;
 }
 
-/* 当根节点分裂后，创建新根(分裂时的上升元素)并连接左右孩子 */
+/* 当根节点分裂后，创建新根(分裂时的上升元素)并连接左右孩子 
+（相比教材新增）上升关键字为 upKey*/
 static void NewRoot(BTree &T, KeyType upKey, BTNode *left, BTNode *right) {
     BTNode *r = NewNode();
     r->keynum = 1;
@@ -143,7 +144,7 @@ static void NewRoot(BTree &T, KeyType upKey, BTNode *left, BTNode *right) {
     T = r;
 }
 
-/* 向 B 树中插入关键字 K。若已存在则不插入，返回 OK（按教材通常忽略重复）。*/
+/* 向 B 树中插入关键字 K。若已存在则不插入，返回 OK。*/
 Status InsertBTree(BTree &T, KeyType K) {
     if (T == NULL) { // 空树，直接成为根
         T = NewNode();
@@ -186,6 +187,8 @@ Status InsertBTree(BTree &T, KeyType K) {
 
     return OK;
 }
+
+
 
 /* ---------------------- B树创建操作 ---------------------- */
 /* 创建一颗含有 n 个关键字的 m 阶 B 树（此实现受编译期常量 M 限制）
