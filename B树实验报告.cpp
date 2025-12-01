@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 using namespace std;
 #define TRUE 1
 #define FALSE 0
@@ -33,6 +34,7 @@ typedef struct {
 
 #pragma endregion
 
+#pragma region B树的基本操作
 // 初始化B树
 Status InitBTree(BTree *T) {
     *T = NULL;
@@ -61,8 +63,13 @@ static BTNode* NewNode() {
     for (int i = 0; i <= M; ++i) p->ptr[i] = NULL;
     return p;
 }
+#pragma endregion
 
 
+
+
+
+#pragma region B树的查找操作
 /* ---------------------- B树查找操作 ---------------------- */
 /* 在节点 p 内查找关键字 K 的位置：返回 i，使得 K 应插入在 i 和 i+1 之间
    即 key[1..i] < K <= key[i+1..]，i 取值范围 [0, p->keynum] */
@@ -90,11 +97,15 @@ Result SearchBTree(BTree T, KeyType K) {
     r.pt = q; r.i = i; r.tag = 0; // 未找到，返回插入位置
     return r;
 }
+#pragma endregion
 
 
-/* ---------------------- B树插入操作 ---------------------- */
+
+
+
+#pragma region B树的插入操作
 /* 在结点 p 中第 i 与 i+1 个关键字之间插入新关键字 K 及其右子树指针 ap。
-   注意：i 由 SearchInNode 得到（K 应插入到 i 与 i+1 之间），ap 可为空（叶子插入）。*/
+   i 由 SearchInNode 得到（K 应插入到 i 与 i+1 之间），ap 可为空（叶子插入）。*/
 static void InsertKey(BTNode *p, int i, KeyType K, BTNode *ap) {
     // 右移腾位置（keys: i+1..keynum -> i+2..keynum+1；ptr 同步 i+1..keynum -> i+2..keynum+1）
     for (int j = p->keynum; j >= i; --j) {
@@ -188,9 +199,9 @@ Status InsertBTree(BTree &T, KeyType K) {
     return OK;
 }
 
+#pragma endregion
 
-
-/* ---------------------- B树创建操作 ---------------------- */
+#pragma region B树的创建操作
 /* 创建一颗含有 n 个关键字的 m 阶 B 树（此实现受编译期常量 M 限制）
    - 若传入 m 与编译期常量 M 不符，将提示并按 M 构建。
    - 从标准输入读取 n 个整数作为关键字，按顺序插入构建 B 树。
@@ -221,9 +232,10 @@ void CreatBTree(BTree &T,int n,int m) {
         InsertBTree(T, k);
     }
 }
+#pragma endregion
 
-/* ---------------------- B树删除操作 ---------------------- */
 
+#pragma region B树的删除操作
 static inline int MinKeys() { 
     return (M + 1) / 2 - 1; 
 } // 非根结点的最少关键字数
@@ -374,7 +386,7 @@ Status DeleteBTree(BTree &T, KeyType K) {
     return OK;
 }
 
-
+#pragma endregion
 
 
 
@@ -406,6 +418,103 @@ void PrintByLevel(BTree T) {
         }
         printf("\n");
     }
+}
+
+// 演示基本操作
+int main() {
+    BTree T;
+    InitBTree(&T);
+    srand(static_cast<unsigned>(time(NULL)));
+
+    const int initCount = 8;
+    printf("初始化B树，随机插入 %d 个关键字。\n", initCount);
+    for (int i = 0; i < initCount; ++i) {
+        int key = rand() % 90 + 10; // 生成两位数，便于观察
+        InsertBTree(T, key);
+    }
+
+    int select = -1;
+    do {
+        printf("\n当前B树层序遍历：\n");
+        PrintByLevel(T);
+        printf("中序关键字序列：");
+        TraverseInOrder(T);
+        printf("\n\n");
+
+        printf("select 1 插入关键字 Insert()\n");
+        printf("select 2 删除关键字 Delete()\n");
+        printf("select 3 查找关键字 Search()\n");
+        printf("select 0 退出测试\n");
+        printf("input your select: ");
+
+        if (scanf("%d", &select) != 1) {
+            printf("输入错误，结束测试。\n");
+            break;
+        }
+
+        switch (select) {
+            case 1: {
+                int key;
+                printf("请输入要插入的关键字: ");
+                if (scanf("%d", &key) == 1) {
+                    InsertBTree(T, key);
+                    printf("已插入 %d。\n", key);
+                } else {
+                    printf("输入无效，中止操作。\n");
+                    DestroyBTree(&T);
+                    return 0;
+                }
+                break;
+            }
+            case 2: {
+                int key;
+                printf("请输入要删除的关键字: ");
+                if (scanf("%d", &key) == 1) {
+                    Result r = SearchBTree(T, key);
+                    if (r.tag) {
+                        DeleteBTree(T, key);
+                        printf("已删除 %d。\n", key);
+                    } else {
+                        printf("关键字 %d 不存在，无需删除。\n", key);
+                    }
+                } else {
+                    printf("输入无效，中止操作。\n");
+                    DestroyBTree(&T);
+                    return 0;
+                }
+                break;
+            }
+            case 3: {
+                int key;
+                printf("请输入要查找的关键字: ");
+                if (scanf("%d", &key) == 1) {
+                    Result r = SearchBTree(T, key);
+                    if (r.tag) {
+                        printf("关键字 %d 已找到，所在结点含 %d 个关键字,节点的关键字序号为 %d\n", key, r.pt->keynum, r.i);
+                    } else if (r.pt) {
+                        printf("未找到 %d，应插入到某结点的第 %d 个位置。\n", key, r.i);
+                    } else {
+                        printf("树为空，尚未插入关键字。\n");
+                    }
+                } else {
+                    printf("输入无效，中止操作。\n");
+                    DestroyBTree(&T);
+                    return 0;
+                }
+                break;
+            }
+            case 0:
+                printf("退出测试。\n");
+                break;
+            default:
+                printf("无效的菜单选项，请重新输入。\n");
+                break;
+        }
+
+    } while (select != 0);
+
+    DestroyBTree(&T);
+    return 0;
 }
 
 
