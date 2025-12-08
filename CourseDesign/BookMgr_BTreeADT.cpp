@@ -642,14 +642,17 @@ static void ListBooksInOrder(BTree node, bool &hasData) {
     ListBooksInOrder(node->ptr[node->keynum], hasData);
 }
 
+
+//新增书籍/增加库存
 static void AddBookMenu(BTree &T) {
     int keep = 1;
     while(keep){
         int bookId = 0;
-        if (!ReadInt("请输入书号: ", bookId)) return;
+        if (!ReadInt("请输入书号:（输入-1退出） ", bookId)) return;
+        if (bookId == -1) return;
         if (bookId < 0) {
             cout << "书号必须为非负整数。" << '\n';
-            return;
+            continue;
         }
 
         Result r = SearchBTree(T, bookId);
@@ -666,6 +669,7 @@ static void AddBookMenu(BTree &T) {
             //return;
             cout << "是否继续添加图书？(1: 是, 0: 否): ";
             cin >> keep;
+            continue;
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
 
@@ -680,7 +684,7 @@ static void AddBookMenu(BTree &T) {
         if (!ReadInt("请输入入库数量: ", total)) return;
         if (total <= 0) {
             cout << "入库数量需为正整数。" << '\n';
-            return;
+            continue;
         }
 
         BookInfo *info = CreateBookInfo(name, author, total);
@@ -697,110 +701,158 @@ static void AddBookMenu(BTree &T) {
     }
 }
 
+
+//删除图书
 static void DeleteBookMenu(BTree &T) {
-    if (!T) {
-        cout << "暂无图书记录。" << '\n';
-        return;
-    }
-    int bookId = 0;
-    if (!ReadInt("请输入要删除的书号: ", bookId)) return;
+    int keep = 1;
+    while (keep)
+    {
+        cout<<"当前图书列表："<<endl;
+        bool has = false;
+        ListBooksInOrder(T, has);
+        if (!T || !has) {
+            cout << "暂无图书记录。" << '\n';
+            return;
+        }
 
-    Result r = SearchBTree(T, bookId);
-    if (!r.tag) {
-        cout << "未找到该书号的图书。" << '\n';
-        return;
-    }
+        int bookId = 0;
+        if (!ReadInt("请输入要删除的书号:(-1退出) ", bookId)) return;
+        if (bookId == -1) return;
 
-    BookInfo *info = r.pt->bookInfo[r.i];
-    if (info && info->borrow_list) {
-        cout << "仍有借阅记录，无法删除该图书。" << '\n';
-        return;
-    }
+        if (bookId < 0) {
+            cout << "书号必须为非负整数。" << '\n';
+            continue;
+        }
 
-    DeleteBTree(T, bookId);
-    cout << "图书已删除。" << '\n';
+        Result r = SearchBTree(T, bookId);
+        if (!r.tag) {
+            cout << "未找到该书号的图书。" << '\n';
+            continue;
+        }
+
+        BookInfo *info = r.pt->bookInfo[r.i];
+        if (info && info->borrow_list) {
+            cout << "仍有借阅记录，无法删除该图书。" << '\n';
+            continue;
+        }
+
+        DeleteBTree(T, bookId);
+        cout << "图书已删除。" << '\n';
+    }
+    
 }
 
+
+//查找图书
 static void SearchBookMenu(BTree T) {
-    if (!T) {
-        cout << "暂无图书记录。" << '\n';
-        return;
+    int keep = 1;
+    while (keep){
+        if (!T || T->keynum == 0) {
+            cout << "暂无图书记录。" << '\n';
+            return;
+        }
+
+        int bookId = 0;
+        if (!ReadInt("请输入要查询的书号:(-1退出) ", bookId)) return;
+        if (bookId == -1) return;
+        if (bookId < 0) {
+            cout << "书号必须为非负整数。" << '\n';
+            continue;
+        }
+
+        Result r = SearchBTree(T, bookId);
+        if (!r.tag) {
+            cout << "未找到该书号的图书。" << '\n';
+            continue;
+        }
+        PrintBookDetail(bookId, r.pt->bookInfo[r.i]);
     }
-    int bookId = 0;
-    if (!ReadInt("请输入要查询的书号: ", bookId)) return;
-    Result r = SearchBTree(T, bookId);
-    if (!r.tag) {
-        cout << "未找到该书号的图书。" << '\n';
-        return;
-    }
-    PrintBookDetail(bookId, r.pt->bookInfo[r.i]);
 }
 
+
+//借阅图书
 static void BorrowBookMenu(BTree T) {
-    if (!T) {
-        cout << "暂无图书记录。" << '\n';
-        return;
-    }
-    int bookId = 0;
-    if (!ReadInt("请输入借阅的书号: ", bookId)) return;
-    Result r = SearchBTree(T, bookId);
-    if (!r.tag) {
-        cout << "未找到该书号的图书。" << '\n';
-        return;
-    }
-    BookInfo *info = r.pt->bookInfo[r.i];
-    if (info->current_count <= 0) {
-        cout << "库存不足，暂无法借出。" << '\n';
-        return;
-    }
+    cout<<"所有输入操作均可输入-1退出当前借阅操作"<<endl;
+    int keep = 1;
+    while (keep)
+    {
+        if (!T || T->keynum == 0) {
+            cout << "暂无图书记录。" << '\n';
+            return;
+        }
 
-    int cardNo = 0;
-    if (!ReadInt("请输入借阅证号: ", cardNo)) return;
-    if (FindBorrowRecord(info->borrow_list, cardNo)) {
-        cout << "该借阅证已借出此书，无法重复借阅。" << '\n';
-        return;
-    }
+        int bookId = 0;
+        if (!ReadInt("请输入要借阅的书号: ", bookId)) continue;
+        if (bookId == -1) return;
+        Result r = SearchBTree(T, bookId);
+        if (!r.tag) {
+            cout << "未找到该书号的图书。" << '\n';
+            continue;
+        }
+        BookInfo *info = r.pt->bookInfo[r.i];
+        if (info->current_count <= 0) {
+            cout << "库存不足，暂无法借出。" << '\n';
+            continue;
+        }
 
-    int returnDate = 0;
-    if (!ReadInt("请输入归还期限(天): ", returnDate)) return;
-    if (returnDate <= 0) {
-        cout << "归还期限需为正整数。" << '\n';
-        return;
-    }
+        int cardNo = 0;
+        if (!ReadInt("请输入借阅证号: ", cardNo)) continue;
+        if (cardNo == -1) return;
+        if (FindBorrowRecord(info->borrow_list, cardNo)) {
+            cout << "该借阅证已借出此书，无法重复借阅。" << '\n';
+            continue;
+        }
 
-    BorrowRecord *record = CreateBorrowRecord(cardNo, returnDate);
-    if (!record) {
-        cout << "内存不足，借阅登记失败。" << '\n';
-        return;
+        int returnDate = 0;
+        if (!ReadInt("请输入归还期限(天): ", returnDate)) continue;
+        if (returnDate <= 0) {
+            cout << "归还期限需为正整数。" << '\n';
+            return;
+        }
+
+        BorrowRecord *record = CreateBorrowRecord(cardNo, returnDate);
+        if (!record) {
+            cout << "内存不足，借阅登记失败。" << '\n';
+            return;
+        }
+        record->next = info->borrow_list;
+        info->borrow_list = record;
+        if (info->current_count > 0) info->current_count--;
+        cout << "借阅登记成功。" << '\n';
     }
-    record->next = info->borrow_list;
-    info->borrow_list = record;
-    if (info->current_count > 0) info->current_count--;
-    cout << "借阅登记成功。" << '\n';
+    
 }
 
+//归还图书
 static void ReturnBookMenu(BTree T) {
-    if (!T) {
-        cout << "暂无图书记录。" << '\n';
-        return;
-    }
-    int bookId = 0;
-    if (!ReadInt("请输入归还的书号: ", bookId)) return;
-    Result r = SearchBTree(T, bookId);
-    if (!r.tag) {
-        cout << "未找到该书号的图书。" << '\n';
-        return;
-    }
-    BookInfo *info = r.pt->bookInfo[r.i];
+    cout<<"所有输入操作均可输入-1退出当前归还操作"<<endl;
+    int keep = 1;
+    while(keep){
+        if (!T || T->keynum == 0) {
+            cout << "暂无图书记录。" << '\n';
+            return;
+        }
 
-    int cardNo = 0;
-    if (!ReadInt("请输入借阅证号: ", cardNo)) return;
-    if (!RemoveBorrowRecord(info, cardNo)) {
-        cout << "未找到对应的借阅信息。" << '\n';
-        return;
+        int bookId = 0;
+        if (!ReadInt("请输入归还的书号:", bookId)) continue;
+        if (bookId == -1) return;
+        Result r = SearchBTree(T, bookId);
+        if (!r.tag) {
+            cout << "未找到该书号的图书。" << '\n';
+            continue;
+        }
+        BookInfo *info = r.pt->bookInfo[r.i];
+
+        int cardNo = 0;
+        if (!ReadInt("请输入借阅证号: ", cardNo)) continue;
+        if (cardNo == -1) return;
+        if (!RemoveBorrowRecord(info, cardNo)) {
+            cout << "未找到对应的借阅信息。" << '\n';
+            continue;
+        }
+        if (info->current_count < info->total_count) info->current_count++;
+        cout << "图书归还完成。" << '\n';
     }
-    if (info->current_count < info->total_count) info->current_count++;
-    cout << "图书归还完成。" << '\n';
 }
 
 static void ListBooksMenu(BTree T) {
@@ -838,7 +890,7 @@ static void PrintIndented(BTree node, int depth) {
 }
 
 void PrintByLevel(BTree T) {
-    if (!T) {
+    if (!T || T->keynum == 0) {
         cout << "<empty>" << '\n';
         return;
     }
