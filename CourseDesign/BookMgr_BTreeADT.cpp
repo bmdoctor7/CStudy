@@ -4,6 +4,8 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <utility>
+#include <vector>
 using namespace std;
 #define TRUE 1
 #define FALSE 0
@@ -861,6 +863,49 @@ static void ListBooksMenu(BTree T) {
     if (!has) cout << "暂无图书记录。" << '\n';
 }
 
+//辅助函数：递归收集某个结点中所有符合著者的图书
+static void CollectBooksByAuthor(BTree node, const string &author, vector<pair<int, BookInfo*>> &matches) {
+    if (!node) return;
+    for (int i = 0; i < node->keynum; ++i) {
+        CollectBooksByAuthor(node->ptr[i], author, matches);
+        BookInfo *info = node->bookInfo[i + 1];
+        if (info && author == info->author) {
+            matches.emplace_back(node->key[i + 1], info);
+        }
+    }
+    CollectBooksByAuthor(node->ptr[node->keynum], author, matches);
+}
+
+//按著者查询图书
+static void SearchByAuthorMenu(BTree T) {
+    if (!T || T->keynum == 0) {
+        cout << "暂无图书记录。" << '\n';
+        return;
+    }
+
+    while (true) {
+        cout << "请输入要查询的著者名(直接回车退出): ";
+        string author;
+        getline(cin, author);
+        if (author.empty()) {
+            cout << "已退出著者查询。" << '\n';
+            return;
+        }
+
+        vector<pair<int, BookInfo*>> matches;
+        CollectBooksByAuthor(T, author, matches);
+        if (matches.empty()) {
+            cout << "未找到该著者的图书。" << '\n';
+            continue;
+        }
+
+        cout << "该著者的图书:" << '\n';
+        for (const auto &entry : matches) {
+            PrintBookDetail(entry.first, entry.second);
+        }
+    }
+}
+
 #pragma endregion
 
 
@@ -912,6 +957,7 @@ int main() {
         cout << "5. 归还图书" << '\n';
         cout << "6. 展示全部图书" << '\n';
         cout << "7. 查看B树结构" << '\n';
+        cout << "8. 按著者查询图书" << '\n';
         cout << "0. 退出系统" << '\n';
         cout << "请选择: ";
 
@@ -945,6 +991,9 @@ int main() {
                 break;
             case 7:
                 PrintByLevel(T);
+                break;
+            case 8:
+                SearchByAuthorMenu(T);
                 break;
             case 0:
                 running = false;
