@@ -27,8 +27,12 @@ typedef struct BTNode {
     struct BTNode *parent;          //指向双亲节点
     KeyType key[M + 1];             // 关键字向量，1..keynum 有效，允许临时使用 keynum=M 溢出
     struct BTNode *ptr[M + 1];      // 子树指针向量，0..keynum 有效（孩子个数=关键字数+1）
-    BookInfo *bookInfo[M + 1];      // 图书信息指针
+    BookInfo *bookInfo[M + 1];      // 图书信息指针,1..keynum 有效（与书号一一对应）
 } BTNode, *BTree;
+//key[1]的左子树是ptr[0],右子树是ptr[1]
+//key[i],m/2 <= i <= M-1(B树阶数-1)
+//ptr[i], 0 <= i <= M-1(B树阶数-1) <最多M个孩子>
+
 
 /* 查找结果类型 */
 typedef struct {

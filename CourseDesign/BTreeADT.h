@@ -50,6 +50,7 @@ static BTNode* NewNode() {
 
 
 
+
 #pragma region B树的查找操作
 /* ---------------------- B树查找操作 ---------------------- */
 /* 在节点 p 内查找关键字 K 的位置：返回 i，使得 K 应插入在 i 和 i+1 之间
@@ -79,7 +80,6 @@ Result SearchBTree(BTree T, KeyType K) {
     return r;
 }
 #pragma endregion
-
 
 
 
@@ -214,6 +214,7 @@ Status InsertBTree(BTree &T, KeyType K,BookInfo *book = nullptr) {
 
 
 
+
 #pragma region B树的创建操作
 /* 创建一颗含有 n 个关键字的 m 阶 B 树（此实现受编译期常量 M 限制）
    - 若传入 m 与编译期常量 M 不符，将提示并按 M 构建。
@@ -246,6 +247,8 @@ void CreatBTree(BTree &T,int n,int m) {
     }
 }
 #pragma endregion
+
+
 
 
 #pragma region B树的删除操作
@@ -462,3 +465,14 @@ Status DeleteBTree(BTree &T, KeyType K) {
 }
 
 #pragma endregion
+
+
+/* 中序遍历输出（用于调试）：按关键字递增输出所有键 */
+void TraverseInOrder(BTree T) {
+    if (!T) return;
+    for (int i = 0; i < T->keynum; ++i) {
+        TraverseInOrder(T->ptr[i]);
+        cout << T->key[i + 1] << ' ';
+    }
+    TraverseInOrder(T->ptr[T->keynum]);
+}

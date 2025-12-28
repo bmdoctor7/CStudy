@@ -12,7 +12,7 @@ using namespace std;
 
 #pragma region 图书管理系统功能
 
-// 从标准输入读取一个整数，带输入验证
+// 从标准输入读取一个整数，带输入验证（书号一定是整型）
 static bool ReadInt(const char *prompt, int &value) {
     cout << prompt;
     if (!(cin >> value)) {
@@ -25,44 +25,6 @@ static bool ReadInt(const char *prompt, int &value) {
     return true;
 }
 
-// 打印某一本图书详细信息
-static void PrintBookDetail(int bookId, const BookInfo *info) {
-    if (!info) return;
-    cout << "书号: " << bookId << '\n';
-    cout << "  书名: " << info->name << '\n';
-    cout << "  作者: " << info->author << '\n';
-    cout << "  可借/总量: " << info->current_count << "/" << info->total_count << '\n';
-    PrintBorrowRecords(info->borrow_list);
-}
-
-// 中序遍历 B 树并列出所有图书
-static void ListBooksInOrder(BTree node, bool &hasData) {
-    if (!node) return;
-    for (int i = 0; i < node->keynum; ++i) {
-        ListBooksInOrder(node->ptr[i], hasData);
-        BookInfo *info = node->bookInfo[i + 1];
-        if (info) {
-            hasData = true;
-            cout << "书号: " << node->key[i + 1]
-                 << " | 书名: " << info->name
-                 << " | 作者: " << info->author
-                 << " | 可借/总量: " << info->current_count << "/" << info->total_count << '\n';
-            if (info->borrow_list) {
-                cout << "  借阅中: ";
-                const BorrowRecord *curr = info->borrow_list;
-                bool first = true;
-                while (curr) {
-                    if (!first) cout << "; ";
-                    cout << "证号" << curr->card_no << "/期限" << curr->return_date << "天";
-                    first = false;
-                    curr = curr->next;
-                }
-                cout << '\n';
-            }
-        }
-    }
-    ListBooksInOrder(node->ptr[node->keynum], hasData);
-}
 
 
 //新增书籍/增加库存
@@ -277,13 +239,14 @@ static void ReturnBookMenu(BTree T) {
     }
 }
 
+//中序遍历列出所有图书
 static void ListBooksMenu(BTree T) {
     bool has = false;
     ListBooksInOrder(T, has);
     if (!has) cout << "暂无图书记录。" << '\n';
 }
 
-//辅助函数：递归收集某个结点中所有符合著者的图书
+//辅助函数：中序遍历递归收集某个结点中所有符合著者的图书
 static void CollectBooksByAuthor(BTree node, const string &author, vector<pair<int, BookInfo*>> &matches) {
     if (!node) return;
     for (int i = 0; i < node->keynum; ++i) {
@@ -329,15 +292,7 @@ static void SearchByAuthorMenu(BTree T) {
 #pragma endregion
 
 
-/* 中序遍历输出（用于调试）：按关键字递增输出所有键 */
-void TraverseInOrder(BTree T) {
-    if (!T) return;
-    for (int i = 0; i < T->keynum; ++i) {
-        TraverseInOrder(T->ptr[i]);
-        cout << T->key[i + 1] << ' ';
-    }
-    TraverseInOrder(T->ptr[T->keynum]);
-}
+
 
 /* 凹入表形式打印 B 树结构 */
 static void PrintIndented(BTree node, int depth) {
