@@ -52,13 +52,12 @@ static BTNode* NewNode() {
 
 
 #pragma region B树的查找操作
-/* ---------------------- B树查找操作 ---------------------- */
 /* 在节点 p 内查找关键字 K 的位置：返回 i，使得 K 应插入在 i 和 i+1 之间
    即 key[1..i] < K <= key[i+1..]，i 取值范围 [0, p->keynum] */
 static int SearchInNode(BTNode *p, KeyType K) {
     int i = 1;
     while (i <= p->keynum && K > p->key[i]) i++;
-    return i; // 若 i<keynum 且 K==key[i+1] 则为命中
+    return i; // 若 i<keynum 且 K==key[i+1] 则为所求关键字
 }
 
 /* 在整棵 B 树中查找 K。若成功，返回 {pt, i, 1}；(pt 为关键字所在的结点，i 为关键字序号)
@@ -69,12 +68,12 @@ Result SearchBTree(BTree T, KeyType K) {
     BTNode *q = NULL; //记录 p 的双亲，若查找失败则返回K应插入的位置
     int i = 0;
     while (p) {
-        i = SearchInNode(p, K);
+        i = SearchInNode(p, K);//若未找到，i 为应插入位置
         if (i <= p->keynum && K == p->key[i]) { //找到关键字
             r.pt = p; r.i = i; r.tag = 1; return r;
         }
         q = p;
-        p = p->ptr[i-1]; //不断向下查找
+        p = p->ptr[i-1]; //不断向下查找（在应插入位置的子树寻找，即找第一个比自己大的关键字的左子树）
     }
     r.pt = q; r.i = i; r.tag = 0; // 未找到，返回插入位置
     return r;
@@ -123,6 +122,7 @@ static void Split(BTree &p, int s, KeyType &upKey, BTree &ap,BookInfo* &upBookIn
         if (q->ptr[j]) q->ptr[j]->parent = q;
     }
 
+    //原结点 p 调整
     p->keynum = s - 1;
     p->bookInfo[s] = nullptr;
     for (int j = s; j <= oldKeyNum; ++j) {
@@ -138,7 +138,7 @@ static void Split(BTree &p, int s, KeyType &upKey, BTree &ap,BookInfo* &upBookIn
     ap = q;
 }
 
-/* 当根节点分裂后，创建新根(分裂时的上升元素)并连接左右孩子 
+/* 根节点分裂，创建新根(分裂时的上升元素)并连接左右孩子 
 （相比教材新增）上升关键字为 upKey*/
 static void NewRoot(BTree &T, KeyType upKey, BookInfo* upBookInfo, BTNode *left, BTNode *right) {
     BTNode *r = NewNode();
@@ -169,7 +169,7 @@ Status InsertBTree(BTree &T, KeyType K,BookInfo *book = nullptr) {
             r.pt->bookInfo[r.i]->current_count += book->total_count;
             FreeBookInfo(book);
         } else if (book) {
-            // 仅在节点尚未绑定信息时接管新数据
+            // 仅在该节点书号未绑定任何书籍信息时覆盖
             r.pt->bookInfo[r.i] = book;
         }
         return OK;
@@ -187,7 +187,7 @@ Status InsertBTree(BTree &T, KeyType K,BookInfo *book = nullptr) {
         if (p->keynum < M) break; // 未溢出，完成
 
         // 溢出：分裂并将中键上升到父结点
-        int s = (M + 1) / 2;      // 上升位置（ceil(M/2)）
+        int s = (M + 1) / 2;      // 上升位置（ceil(M/2)上取整）
         KeyType up;
         BookInfo *upBookInfo;  // 新增：上升的图书信息
         Split(p, s, up, ap, upBookInfo);      // p 成为左结点，ap 为右结点，up 为上升关键字
@@ -196,7 +196,7 @@ Status InsertBTree(BTree &T, KeyType K,BookInfo *book = nullptr) {
             // 在父结点中找到插入 up 的位置
             BTNode *parent = p->parent;
             i = SearchInNode(parent, up);
-            p = parent;// 继续向上
+            p = parent;// 继续向上（向上插入后结点仍然有可能溢出）
             x = up;
             book = upBookInfo;
             // 继续循环，把 up 插入父结点，并把 ap 作为其右子树
@@ -283,7 +283,8 @@ static int ChildIndex(BTNode *parent, BTNode *child) {
 }
 
 /* 向左兄弟借：使用 parent->key[k]（k>=1）作为桥，把左兄弟的最大键上移，桥键下移到 p的最前面*/
-/* k由ChildIndex()函数获得 —— p节点在父节点ptr指针的次序*/
+/* k —— 由ChildIndex()函数获得，p节点在父节点ptr指针的次序*/
+/*p —— 下溢出结点*/
 static bool BorrowFromLeft(BTNode *parent, int k, BTNode *p) {
     BTNode *L = parent->ptr[k - 1];//左兄弟结点
 
@@ -308,6 +309,8 @@ static bool BorrowFromLeft(BTNode *parent, int k, BTNode *p) {
     // 左兄弟最大键上移为桥键
     parent->key[k] = L->key[oldKeyNum];
     parent->bookInfo[k] = L->bookInfo[oldKeyNum];
+
+    //清除左兄弟原有最大键及指针
     L->key[oldKeyNum] = 0;
     L->bookInfo[oldKeyNum] = nullptr;
     L->ptr[oldKeyNum] = NULL;
@@ -352,9 +355,10 @@ static bool BorrowFromRight(BTNode *parent, int k, BTNode *p) {
 }
 
 /* 与右兄弟合并：将 parent->key[k+1] 下移到 p（位于其末尾），再把右兄弟所有键和孩子搬到 p，随后删除父中的桥与右指针 */
-/* k由ChildIndex()函数获得 —— p节点在父节点ptr指针的次序*/
+/* k —— 由ChildIndex()函数获得，p节点在父节点ptr指针的次序 */
+/* p —— 下溢出结点，要进行合并操作的结点 */
 static void MergeWithRight(BTree &T, BTNode *parent, int k, BTNode *p) {
-    BTNode *R = parent->ptr[k + 1];
+    BTNode *R = parent->ptr[k + 1];//右兄弟结点
     int base = p->keynum; // p 原关键字数
     // 桥键下移到 p
     p->key[base + 1] = parent->key[k + 1];
@@ -373,7 +377,7 @@ static void MergeWithRight(BTree &T, BTNode *parent, int k, BTNode *p) {
     }
     p->keynum = base + 1 + R->keynum;
 
-    // 删除父中的桥与右兄弟指针
+    // 删除父中的桥(key[k+1])与右兄弟指针
     const int oldParentKeys = parent->keynum;
     for (int j = k + 1; j < oldParentKeys; ++j) {
         parent->key[j] = parent->key[j + 1];
@@ -414,8 +418,9 @@ Status DeleteBTree(BTree &T, KeyType K) {
         p->bookInfo[i] = q->bookInfo[q->keynum];
         q->bookInfo[q->keynum] = nullptr;
         p = q; i = q->keynum; // 后续在叶子 q 删除最后一个关键字
-    } else if (p->ptr[i] != NULL) {
-        // 理论上不会只存在一个方向，但为健壮性加上用后继替换
+    } 
+    else if (p->ptr[i] != NULL) {
+        // 后继替换
         BTNode *q = p->ptr[i];
         while (q->ptr[0] != NULL) q = q->ptr[0];
         p->key[i] = q->key[1];
@@ -452,7 +457,7 @@ Status DeleteBTree(BTree &T, KeyType K) {
         if (k < parent->keynum) {
             MergeWithRight(T, parent, k, p);
             // 合并后可能导致父节点下溢，继续向上检查
-            p = parent;
+            p = parent;//向上
         } else {
             // 与左兄弟合并：把合并目标设为左兄弟，k-1
             BTNode *left = parent->ptr[k - 1];
@@ -467,7 +472,7 @@ Status DeleteBTree(BTree &T, KeyType K) {
 #pragma endregion
 
 
-/* 中序遍历输出（用于调试）：按关键字递增输出所有键 */
+// 中序遍历（左根右根左....）
 void TraverseInOrder(BTree T) {
     if (!T) return;
     for (int i = 0; i < T->keynum; ++i) {

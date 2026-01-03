@@ -297,7 +297,7 @@ static void SearchByAuthorMenu(BTree T) {
 /* 凹入表形式打印 B 树结构 */
 static void PrintIndented(BTree node, int depth) {
     if (!node) return;
-    const string indent(depth * 4, ' ');
+    const string indent(depth * 4, ' ');//每层缩进4个空格
     cout << indent;
     for (int i = 1; i <= node->keynum; ++i) {
         cout << node->key[i];
@@ -306,6 +306,7 @@ static void PrintIndented(BTree node, int depth) {
     cout << '\n';
     for (int i = 0; i <= node->keynum; ++i) {
         PrintIndented(node->ptr[i], depth + 1);
+        //每次递归增加缩进深度（增加一层）
     }
 }
 

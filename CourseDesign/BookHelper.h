@@ -3,7 +3,7 @@
 #include <cstring>
 using namespace std;
 
-/* 辅助内存管理与工具函数 */
+// 删除整个借阅记录链表
 static void FreeBorrowList(BorrowRecord *head) {
     while (head) {
         BorrowRecord *next = head->next;
@@ -85,9 +85,9 @@ static bool RemoveBorrowRecord(BookInfo *info, int cardNo) {
     while (curr) {
         if (curr->card_no == cardNo) {
             if (prev) {
-                prev->next = curr->next;
-            } else {
-                info->borrow_list = curr->next;
+                prev->next = curr->next;//匹配，删除节点
+            } else {//第一条记录就匹配
+                info->borrow_list = curr->next;//更新头指针
             }
             free(curr);
             return true;
